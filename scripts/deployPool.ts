@@ -1,11 +1,12 @@
 import { Address, Cell, toNano, beginCell } from '@ton/core';
-import { Pool, dataToFullConfig, poolFullConfigToCell } from '../wrappers/Pool';
+import { Pool, PoolFullConfig, dataToFullConfig, poolFullConfigToCell } from '../wrappers/Pool';
 import { PoolState } from "../PoolConstants";
 import { JettonMinter as DAOJettonMinter, jettonContentToCell } from '../contracts/jetton_dao/wrappers/JettonMinter';
 import { compile, NetworkProvider, sleep } from '@ton/blueprint';
 import {JettonWallet as PoolJettonWallet } from '../wrappers/JettonWallet';
 import { Controller } from '../wrappers/Controller';
 import { Librarian, LibrarianConfig } from '../wrappers/Librarian';
+import { TonClient4 } from '@ton/ton';
 
 
 const waitForTransaction = async (provider:NetworkProvider, address:Address,
@@ -16,21 +17,21 @@ const waitForTransaction = async (provider:NetworkProvider, address:Address,
     let done  = false;
     let count = 0;
     const ui  = provider.ui();
-    let blockNum = (await provider.api().getLastBlock()).last.seqno;
+    let blockNum = (await (provider.api() as TonClient4).getLastBlock()).last.seqno;
     if(curTxLt == null) {
-        let initialState = await provider.api().getAccount(blockNum, address);
+        let initialState = await (provider.api() as TonClient4).getAccount(blockNum, address);
         let lt = initialState?.account?.last?.lt;
         curTxLt = lt ? lt : null;
     }
     do {
         ui.write(`Awaiting ${action} completion (${++count}/${maxRetry})`);
         await sleep(interval);
-        let newBlockNum = (await provider.api().getLastBlock()).last.seqno;
+        let newBlockNum = (await (provider.api() as TonClient4).getLastBlock()).last.seqno;
         if (blockNum == newBlockNum) {
             continue;
         }
         blockNum = newBlockNum;
-        const curState = await provider.api().getAccount(blockNum, address);
+        const curState = await (provider.api() as TonClient4).getAccount(blockNum, address);
         if(curState?.account?.last !== null){
             done = curState?.account?.last?.lt !== curTxLt;
         }
@@ -64,7 +65,7 @@ export async function run(provider: NetworkProvider) {
                                                   content,
                                                   voting_code:dao_voting_code},
                                                   dao_minter_code);
-    let poolFullConfig = {
+    let poolFullConfig: PoolFullConfig = {
           state: PoolState.NORMAL as (0 | 1),
           halted: false, // not halted
           totalBalance: 0n,
@@ -96,7 +97,7 @@ export async function run(provider: NetworkProvider) {
           minLoanPerValidator: toNano('10000'),
           maxLoanPerValidator: toNano('700000'),
 
-          // To set X% put X*(2**24) here
+          // To set X% put (X/100) * (2**24) here
           governanceFee: 2516582,
 
           sudoer : Address.parse("EQDIeMe7NaJ_tvSMmv_sc--fYie_qUtXTKZgqD7h63JgwLtv"),
@@ -106,11 +107,16 @@ export async function run(provider: NetworkProvider) {
           interest_manager : Address.parse("EQBhTMRnu4ZpYvNuv7E7S_T6eOQQhxLLY5jFsJ9su1N8L8E9"),
           halter : Address.parse("EQDzykJAVXoLdBT7gpJuk7taV1t47uviG1TkQUCCZQp4fD3S"),
           approver : Address.parse("EQAWPbtEv-ol2HUv26cBUDFRvcSDhRRVxmrnYgXVYf2Y2Aoc"),
+          // treasury is optional
 
           controller_code : controller_code,
           pool_jetton_wallet_code : dao_wallet_code,
           payout_minter_code : payout_collection,
-          vote_keeper_code : dao_vote_keeper_code,
+
+          instantWithdrawalFee: 0,
+          disbalanceTolerance: 30,
+          creditStartPriorElectionsEnd: 0,
+          accruedGovernanceFee: 0n
     };
 
     //deploy or use existing librarian
