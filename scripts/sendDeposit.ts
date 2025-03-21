@@ -1,6 +1,6 @@
-import { Address, toNano } from 'ton-core';
+import { Address, toNano } from '@ton/core';
 import { Pool } from '../wrappers/Pool';
-import { NetworkProvider } from '@ton-community/blueprint';
+import { NetworkProvider } from '@ton/blueprint';
 
 
 
