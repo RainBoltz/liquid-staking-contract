@@ -1,4 +1,4 @@
-import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode, toNano, TupleBuilder, Dictionary, DictionaryValue, Message, storeMessage } from '@ton/core';
+import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode, toNano, TupleBuilder, Dictionary, DictionaryValue, Message, storeMessage, TupleItemCell } from 'ton-core';
 
 import { PayoutCollection } from "./PayoutNFTCollection";
 import { Conf, Op, PoolState } from "../PoolConstants";
@@ -708,123 +708,124 @@ export class Pool implements Contract {
       return stack.readAddress();
     }
     async getFullData(provider: ContractProvider) {
-        let { stack } = await provider.get('get_pool_full_data', []);
-        let new_contract_version = stack.remaining == 34;
-        let state = stack.readNumber() as State;
-        let halted = stack.readBoolean();
-        let totalBalance = stack.readBigNumber();
-        let interestRate = stack.readNumber();
-        let optimisticDepositWithdrawals = stack.readBoolean();
-        let depositsOpen = stack.readBoolean();
-        let instantWithdrawalFee = 0;
-        if(new_contract_version) {
-            instantWithdrawalFee = stack.readNumber();
-        }
-        let savedValidatorSetHash = stack.readBigNumber();
+      let { stack } = await provider.get('get_pool_full_data', []);
+      let new_contract_version = stack.remaining == 34;
+      let state = stack.readNumber() as State;
+      let halted = stack.readBoolean();
+      let totalBalance = stack.readBigNumber();
+      let interestRate = stack.readNumber();
+      let optimisticDepositWithdrawals = stack.readBoolean();
+      let depositsOpen = stack.readBoolean();
+      let instantWithdrawalFee = 0;
+      if(new_contract_version) {
+          instantWithdrawalFee = stack.readNumber();
+      }
+      let savedValidatorSetHash = stack.readBigNumber();
 
-        let prv = stack.readTuple();
-        let prvBorrowers = prv.readCellOpt();
-        let prvRoundId = prv.readNumber();
-        let prvActiveBorrowers = prv.readBigNumber();
-        let prvBorrowed = prv.readBigNumber();
-        let prvExpected = prv.readBigNumber();
-        let prvReturned = prv.readBigNumber();
-        let prvProfit = prv.readBigNumber();
-        let previousRound = {
-          borrowers: prvBorrowers,
-          roundId: prvRoundId,
-          activeBorrowers: prvActiveBorrowers,
-          borrowed: prvBorrowed,
-          expected: prvExpected,
-          returned: prvReturned,
-          profit: prvProfit
-        };
+      let prv = stack.readTuple();
+      let prvBorrowers: any = prv.pop() as unknown as TupleItemCell[];
+      prvBorrowers = prvBorrowers.length > 0 ? prvBorrowers.readCell() : null;
+      let prvRoundId = prv.pop() as unknown as number;
+      let prvActiveBorrowers = prv.pop() as unknown as bigint;
+      let prvBorrowed = prv.pop() as unknown as bigint;
+      let prvExpected = prv.pop() as unknown as bigint;
+      let prvReturned = prv.pop() as unknown as bigint;
+      let prvProfit = prv.pop() as unknown as bigint;
+      let previousRound = {
+        borrowers: prvBorrowers,
+        roundId: Number(prvRoundId),
+        activeBorrowers: prvActiveBorrowers,
+        borrowed: prvBorrowed,
+        expected: prvExpected,
+        returned: prvReturned,
+        profit: prvProfit
+      };
 
-        let cur = stack.readTuple();
-        let curBorrowers = cur.readCellOpt();
-        let curRoundId = cur.readNumber();
-        let curActiveBorrowers = cur.readBigNumber();
-        let curBorrowed = cur.readBigNumber();
-        let curExpected = cur.readBigNumber();
-        let curReturned = cur.readBigNumber();
-        let curProfit = cur.readBigNumber();
-        let currentRound = {
-          borrowers: curBorrowers,
-          roundId: curRoundId,
-          activeBorrowers: curActiveBorrowers,
-          borrowed: curBorrowed,
-          expected: curExpected,
-          returned: curReturned,
-          profit: curProfit
-        };
+      let cur = stack.readTuple();
+      let curBorrowers: any = cur.pop() as unknown as TupleItemCell[];
+      curBorrowers = curBorrowers.length > 0 ? curBorrowers.readCell() : null;
+      let curRoundId = cur.pop() as unknown as number;
+      let curActiveBorrowers = cur.pop() as unknown as bigint;
+      let curBorrowed = cur.pop() as unknown as bigint;
+      let curExpected = cur.pop() as unknown as bigint;
+      let curReturned = cur.pop() as unknown as bigint;
+      let curProfit = cur.pop() as unknown as bigint;
+      let currentRound = {
+        borrowers: curBorrowers,
+        roundId: Number(curRoundId),
+        activeBorrowers: curActiveBorrowers,
+        borrowed: curBorrowed,
+        expected: curExpected,
+        returned: curReturned,
+        profit: curProfit
+      };
 
-        let minLoan = stack.readBigNumber();
-        let maxLoan = stack.readBigNumber();
-        let governanceFee = stack.readNumber();
+      let minLoan = stack.readBigNumber();
+      let maxLoan = stack.readBigNumber();
+      let governanceFee = stack.readNumber();
 
-        let accruedGovernanceFee = 0n;
-        let disbalanceTolerance = 30;
-        let creditStartPriorElectionsEnd = 0;
-        if(new_contract_version) {
-            accruedGovernanceFee = stack.readBigNumber();
-            disbalanceTolerance = stack.readNumber();
-            creditStartPriorElectionsEnd = stack.readNumber();
-        }
+      let accruedGovernanceFee = 0n;
+      let disbalanceTolerance = 30;
+      let creditStartPriorElectionsEnd = 0;
+      if(new_contract_version) {
+          accruedGovernanceFee = stack.readBigNumber();
+          disbalanceTolerance = stack.readNumber();
+          creditStartPriorElectionsEnd = stack.readNumber();
+      }
 
+      let poolJettonMinter = stack.readAddress();
+      let poolJettonSupply = stack.readBigNumber();
 
-        let poolJettonMinter = stack.readAddress();
-        let poolJettonSupply = stack.readBigNumber();
+      let depositPayout = stack.readAddressOpt();
+      let requestedForDeposit = stack.readBigNumber();
 
-        let depositPayout = stack.readAddressOpt();
-        let requestedForDeposit = stack.readBigNumber();
+      let withdrawalPayout = stack.readAddressOpt();
+      let requestedForWithdrawal = stack.readBigNumber();
 
-        let withdrawalPayout = stack.readAddressOpt();
-        let requestedForWithdrawal = stack.readBigNumber();
+      let sudoer = stack.readAddress();
+      let sudoerSetAt = stack.readNumber();
 
-        let sudoer = stack.readAddress();
-        let sudoerSetAt = stack.readNumber();
+      let governor = stack.readAddress();
+      let governorUpdateAfter = stack.readNumber();
+      let interestManager = stack.readAddress();
+      let halter = stack.readAddress();
+      let approver = stack.readAddress();
 
-        let governor = stack.readAddress();
-        let governorUpdateAfter = stack.readNumber();
-        let interestManager = stack.readAddress();
-        let halter = stack.readAddress();
-        let approver = stack.readAddress();
+      let controllerCode = stack.readCell();
+      let jettonWalletCode = stack.readCell();
+      let payoutMinterCode = stack.readCell();
 
-        let controllerCode = stack.readCell();
-        let jettonWalletCode = stack.readCell();
-        let payoutMinterCode = stack.readCell();
+      let projectedTotalBalance = stack.readBigNumber();
+      let projectedPoolSupply = stack.readBigNumber();
 
-        let projectedTotalBalance = stack.readBigNumber();
-        let projectedPoolSupply = stack.readBigNumber();
+      return {
+          state, halted,
+          totalBalance, interestRate,
+          optimisticDepositWithdrawals, depositsOpen, instantWithdrawalFee,
+          savedValidatorSetHash,
 
-        return {
-            state, halted,
-            totalBalance, interestRate,
-            optimisticDepositWithdrawals, depositsOpen, instantWithdrawalFee,
-            savedValidatorSetHash,
+          previousRound, currentRound,
 
-            previousRound, currentRound,
+          minLoan, maxLoan,
+          governanceFee, accruedGovernanceFee,
+          disbalanceTolerance, creditStartPriorElectionsEnd,
 
-            minLoan, maxLoan,
-            governanceFee, accruedGovernanceFee,
-            disbalanceTolerance, creditStartPriorElectionsEnd,
+          poolJettonMinter, poolJettonSupply, supply:poolJettonSupply,
+          depositPayout, requestedForDeposit,
+          withdrawalPayout, requestedForWithdrawal,
 
-            poolJettonMinter, poolJettonSupply, supply:poolJettonSupply,
-            depositPayout, requestedForDeposit,
-            withdrawalPayout, requestedForWithdrawal,
+          sudoer, sudoerSetAt,
+          governor, governorUpdateAfter,
+          interestManager,
+          halter,
+          approver,
 
-            sudoer, sudoerSetAt,
-            governor, governorUpdateAfter,
-            interestManager,
-            halter,
-            approver,
-
-            controllerCode,
-            jettonWalletCode,
-            payoutMinterCode,
-            projectedTotalBalance,
-            projectedPoolSupply,
-        };
+          controllerCode,
+          jettonWalletCode,
+          payoutMinterCode,
+          projectedTotalBalance,
+          projectedPoolSupply,
+      };
     }
 
     async getFullDataRaw(provider: ContractProvider) {
