@@ -1,11 +1,11 @@
-import { Address, Tuple, TupleItem, TupleItemInt, TupleReader, toNano } from "ton";
-import { Cell, Slice, Sender, SenderArguments, ContractProvider, Message, beginCell, Dictionary, MessageRelaxed, Transaction, fromNano } from "ton-core";
-import { Blockchain, BlockchainTransaction, MessageParams, SendMessageResult, SmartContract, SmartContractTransaction } from "@ton-community/sandbox";
+import { Address, Tuple, TupleItem, TupleItemInt, TupleReader, toNano } from "@ton/ton";
+import { Cell, Slice, Sender, SenderArguments, ContractProvider, Message, beginCell, Dictionary, MessageRelaxed, Transaction, fromNano } from "@ton/core";
+import { Blockchain, BlockchainTransaction, MessageParams, SendMessageResult, SmartContract, SmartContractTransaction } from "@ton/sandbox";
 import { computeMessageForwardFees, MsgPrices } from "./fees";
 import { Op } from "./PoolConstants";
-import { MessageValue } from "ton-core/dist/types/Message";
-import { compareTransaction, flattenTransaction, FlatTransactionComparable } from "@ton-community/test-utils";
-import { extractEvents } from "@ton-community/sandbox/dist/event/Event";
+import { MessageValue } from "@ton/core/dist/types/Message";
+import { compareTransaction, flattenTransaction, FlatTransactionComparable } from "@ton/test-utils";
+import { extractEvents } from "@ton/sandbox/dist/event/Event";
 
 
 const randomAddress = (wc: number = 0) => {
@@ -38,7 +38,7 @@ export const getRandom = (min:number, max:number) => {
     return Math.random() * (max - min) + min;
 }
 
-enum roundMode {floor, ceil, round};
+export enum roundMode {floor, ceil, round};
 
 export const getRandomInt = (min:number, max:number, mode: roundMode = roundMode.floor) => {
     let res = getRandom(min, max);
@@ -514,7 +514,7 @@ export class Txiterator implements AsyncIterator<BlockchainTransaction>  {
         if(inMsg.info.type !== "internal")
             throw(Error("Internal only"));
         const smc = await this.blockchain.getContract(inMsg.info.dest);
-        const res = smc.receiveMessage(inMsg, {now: this.blockchain.now});
+        const res = await smc.receiveMessage(inMsg, {now: this.blockchain.now});
         const bcRes = {
             ...res,
             events: extractEvents(res),

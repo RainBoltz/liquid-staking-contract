@@ -1,13 +1,13 @@
-import { Blockchain, SandboxContract, internal, TreasuryContract, BlockchainSnapshot } from '@ton-community/sandbox';
-import { Cell, toNano, beginCell, Address, Dictionary } from 'ton-core';
+import { Blockchain, SandboxContract, internal, TreasuryContract, BlockchainSnapshot } from '@ton/sandbox';
+import { Cell, toNano, beginCell, Address, Dictionary } from '@ton/core';
 import { Pool, PoolConfig } from '../wrappers/Pool';
 import { Controller, ControllerConfig } from '../wrappers/Controller';
 import { JettonMinter as DAOJettonMinter, jettonContentToCell } from '../contracts/jetton_dao/wrappers/JettonMinter';
 import { setConsigliere } from '../wrappers/PayoutMinter.compile';
 import { getElectionsConf, getVset, loadConfig, packValidatorsSet } from "../wrappers/ValidatorUtils";
-import '@ton-community/test-utils';
-import { randomAddress } from "@ton-community/test-utils";
-import { compile } from '@ton-community/blueprint';
+import '@ton/test-utils';
+import { randomAddress } from "@ton/test-utils";
+import { compile } from '@ton/blueprint';
 import { Conf, Op } from "../PoolConstants";
 import { findCommon, computedGeneric } from '../utils';
 
@@ -259,7 +259,7 @@ describe('Controller & Pool', () => {
 
             const poolSmc = await blockchain.getContract(pool.address);
 
-            const requestLoanResult = poolSmc.receiveMessage(internal({
+            const requestLoanResult = await poolSmc.receiveMessage(internal({
                 from: anotherController.address,
                 to: pool.address,
                 value: toNano('0.5'),
@@ -279,7 +279,7 @@ describe('Controller & Pool', () => {
             const anotherController = blockchain.openContract(Controller.createFromConfig(anotherControllerConfig, controller_code));
 
             const poolSmc = await blockchain.getContract(pool.address);
-            const requestLoanResult = poolSmc.receiveMessage(internal({
+            const requestLoanResult = await poolSmc.receiveMessage(internal({
                 from: anotherController.address,
                 to: pool.address,
                 value: toNano('0.5'),
@@ -388,7 +388,7 @@ describe('Controller & Pool', () => {
                 const {id, addr} = controllers[i];
 
                 let body = loanRequestControllerIntoPool(minLoanRequestBody, id, deployer.address);
-                let result = poolSmc.receiveMessage(internal({
+                let result = await poolSmc.receiveMessage(internal({
                     from: addr,
                     to: pool.address,
                     value: toNano('0.5'),
@@ -400,7 +400,7 @@ describe('Controller & Pool', () => {
             }
             const {id, addr} = controllers[MAX_DEPTH];
             let body = loanRequestControllerIntoPool(minLoanRequestBody, id, deployer.address);
-            let result = poolSmc.receiveMessage(internal({
+            let result = await poolSmc.receiveMessage(internal({
                 from: addr,
                 to: pool.address,
                 value: toNano('0.5'),
@@ -454,9 +454,9 @@ describe('Controller & Pool', () => {
                 from: pool.address,
                 to: poolConfig.interest_manager,
                 op: Op.interestManager.stats, // interest_manager::stats
-                body: (x: Cell) => {
-                    let s = x.beginParse();
-                    s.loadUint(32 + 64); // op, query id
+                body: (x: Cell | undefined) => {
+                    let s = x!.beginParse();
+                    s.loadUintBig(32 + 64); // op, query id
                     let borrowed = s.loadCoins();
                     return borrowed == 0n; // there were no previous "previous borrowers"
                 }
