@@ -409,7 +409,9 @@ int muldiv_extra(int a, int b, int c) inline {
               ;; maybe too harsh conditions
               int creditable_funds = balance
                                      - muldiv_extra(requested_for_withdrawal, total_balance, supply)
-                                     - MIN_TONS_FOR_STORAGE;
+                                     - MIN_TONS_FOR_STORAGE
+                                     - 1; ;; 1 is for safety margin
+                                     
               var [_, _, _, borrowed, _, _, _] = current_round_borrowers;
               int available_funds = min( creditable_funds,
                                          muldiv( (DISBALANCE_TOLERANCE_BASIS / 2) + disbalance_tolerance, total_balance, DISBALANCE_TOLERANCE_BASIS)
@@ -863,7 +865,9 @@ int calculate_loan_amount(int min_loan, int max_loan, int max_interest) method_i
 
     int creditable_funds = pair_first(get_balance())
             - muldiv_extra(requested_for_withdrawal, total_balance, supply)
-            - MIN_TONS_FOR_STORAGE;
+            - MIN_TONS_FOR_STORAGE
+            - 1; ;; 1 is for safety margin
+
     var [_, _, _, borrowed, _, _, _] = current_round_borrowers;
     int available_funds = min( creditable_funds, muldiv((DISBALANCE_TOLERANCE_BASIS / 2) + disbalance_tolerance, total_balance, DISBALANCE_TOLERANCE_BASIS) - borrowed );
 
